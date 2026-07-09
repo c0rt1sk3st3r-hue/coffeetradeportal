@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kenyan Coffee Export Workflow Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2b1b12;
+    --ink-soft:#5c4a3d;
+    --cream:#faf5ec;
+    --paper:#ffffff;
+    --amber:#a3672f;
+    --amber-deep:#7c4d20;
+    --sage:#5f7a52;
+    --rust:#a8402a;
+    --line:#e4d7c4;
+    --shadow: 0 1px 2px rgba(43,27,18,0.06), 0 8px 24px rgba(43,27,18,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--cream);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:36px 24px 80px;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:24px;
+    margin-bottom:34px;
+    flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:14px; }
+  .cup{
+    width:46px;height:46px;border-radius:50%;
+    background:var(--amber-deep);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .cup svg{ width:22px;height:22px; }
+  .brand h1{
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 2px;
+    letter-spacing:-0.01em;
+  }
+  .brand .eyebrow{
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--amber);
+    font-weight:600;
+  }
+  .batch-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 14px;
+    box-shadow:var(--shadow);
+  }
+  .batch-tag b{ color:var(--amber-deep); }
+
+  .layout{
+    display:grid;
+    grid-template-columns:230px 1fr;
+    gap:28px;
+  }
+  @media (max-width:820px){
+    .layout{ grid-template-columns:1fr; }
+    .rail{ display:none; }
+    .rail-mobile{ display:block !important; }
+  }
+
+  /* Stepper rail */
+  .rail{
+    position:relative;
+    padding-left:6px;
+  }
+  .rail-mobile{ display:none; }
+  .step{
+    position:relative;
+    padding:0 0 30px 30px;
+    cursor:default;
+  }
+  .step:last-child{ padding-bottom:0; }
+  .step::before{
+    content:'';
+    position:absolute;
+    left:9px; top:26px; bottom:-4px;
+    width:1px;
+    background:var(--line);
+  }
+  .step:last-child::before{ display:none; }
+  .dot{
+    position:absolute; left:0; top:1px;
+    width:20px;height:20px;border-radius:50%;
+    background:var(--paper);
+    border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px; font-weight:600; color:var(--ink-soft);
+    transition:all .25s ease;
+  }
+  .step.active .dot{ border-color:var(--amber); background:var(--amber); color:#fff; box-shadow:0 0 0 4px rgba(163,103,47,0.15); }
+  .step.done .dot{ border-color:var(--sage); background:var(--sage); color:#fff; }
+  .step.failed .dot{ border-color:var(--rust); background:var(--rust); color:#fff; }
+  .step .label{
+    font-size:13.5px; font-weight:600; color:var(--ink-soft);
+    padding-top:1px;
+  }
+  .step.active .label{ color:var(--ink); }
+  .step .sub{ font-size:11.5px; color:#9c8b7c; margin-top:1px; }
+
+  /* Main panel */
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    padding:34px;
+    min-height:420px;
+    display:flex;
+    flex-direction:column;
+  }
+  .stage-eyebrow{
+    font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--amber); font-weight:700; margin-bottom:6px;
+  }
+  .stage-title{
+    font-family:'Fraunces',serif; font-size:26px; font-weight:600;
+    margin:0 0 6px; letter-spacing:-0.01em;
+  }
+  .stage-desc{ color:var(--ink-soft); font-size:14.5px; margin:0 0 26px; max-width:520px; }
+
+  .field{ margin-bottom:20px; }
+  .field label{
+    display:block; font-size:13px; font-weight:600; margin-bottom:7px; color:var(--ink);
+  }
+  .field input[type=text], .field input[type=number]{
+    width:100%; max-width:340px;
+    padding:11px 13px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    background:#fffdfa;
+    color:var(--ink);
+  }
+  .field input:focus{ outline:2px solid var(--amber); outline-offset:1px; border-color:var(--amber); }
+
+  .choice-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .choice{
+    border:1px solid var(--line);
+    background:#fffdfa;
+    padding:11px 18px;
+    border-radius:8px;
+    font-size:14px; font-weight:500;
+    cursor:pointer;
+    transition:all .15s ease;
+    user-select:none;
+  }
+  .choice:hover{ border-color:var(--amber); }
+  .choice.selected{
+    background:var(--amber); border-color:var(--amber); color:#fff; font-weight:600;
+  }
+  .choice.reject.selected{ background:var(--rust); border-color:var(--rust); }
+
+  .method-card{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px 18px;
+    cursor:pointer;
+    background:#fffdfa;
+    transition:all .15s ease;
+  }
+  .method-card:hover{ border-color:var(--amber); }
+  .method-card.selected{ border-color:var(--amber); background:#fbf2e7; }
+  .method-card b{ display:block; font-size:14.5px; margin-bottom:4px; }
+  .method-card span{ font-size:12.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace; }
+  .method-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; max-width:520px; }
+
+  select{
+    padding:11px 13px; border:1px solid var(--line); border-radius:8px;
+    font-family:'Inter',sans-serif; font-size:14.5px; background:#fffdfa; color:var(--ink);
+    min-width:220px;
+  }
+
+  .footer-row{
+    margin-top:auto;
+    padding-top:24px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-weight:600; font-size:14px;
+    padding:12px 22px;
+    border-radius:8px;
+    border:none;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .btn-primary{ background:var(--ink); color:#fff; }
+  .btn-primary:hover{ background:var(--amber-deep); }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); border:1px solid var(--line); }
+  .btn-ghost:hover{ border-color:var(--ink-soft); color:var(--ink); }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .inline-error{
+    font-size:12.5px; color:var(--rust); font-weight:600; margin-top:6px; display:none;
+  }
+
+  /* Result screens (rejection / reprocess / export decision) */
+  .result-screen{ text-align:left; }
+  .stamp{
+    display:inline-block;
+    border:3px solid var(--sage);
+    color:var(--sage);
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:0.04em;
+    padding:10px 26px;
+    border-radius:10px;
+    transform:rotate(-3deg);
+    margin:6px 0 22px;
+  }
+  .stamp.rust{ border-color:var(--rust); color:var(--rust); }
+  .stamp.amber{ border-color:var(--amber); color:var(--amber-deep); }
+  .missing-list{ list-style:none; padding:0; margin:0 0 20px; }
+  .missing-list li{
+    font-size:14px; color:var(--rust); font-weight:500; margin-bottom:6px;
+    padding-left:18px; position:relative;
+  }
+  .missing-list li::before{ content:'—'; position:absolute; left:0; }
+
+  .summary-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:10px 24px;
+    font-size:14px; margin-bottom:8px;
+  }
+  .summary-grid div span{ display:block; }
+  .summary-grid .k{ color:#9c8b7c; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px; }
+  .summary-grid .v{ font-weight:600; }
+
+  /* Log panel */
+  .log-panel{
+    margin-top:26px;
+    background:var(--ink);
+    border-radius:14px;
+    padding:22px 24px;
+    box-shadow:var(--shadow);
+  }
+  .log-head{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;
+  }
+  .log-head h3{
+    font-family:'IBM Plex Mono',monospace;
+    color:#f2e6d4;
+    font-size:13px; font-weight:600; letter-spacing:0.06em; margin:0;
+    text-transform:uppercase;
+  }
+  .log-body{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:#d8c8b0;
+    max-height:220px;
+    overflow-y:auto;
+    white-space:pre-wrap;
+    line-height:1.6;
+  }
+  .log-body:empty::before{
+    content:'No batches logged yet — results will appear here as you process batches, mirroring results.txt';
+    color:#8a7863;
+  }
+  .download-btn{
+    background:transparent; border:1px solid #5c4a3d; color:#f2e6d4;
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600;
+    padding:7px 14px; border-radius:6px; cursor:pointer;
+  }
+  .download-btn:hover{ border-color:var(--amber); color:var(--amber); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="cup">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Z" stroke="#f2e6d4" stroke-width="1.6"/><path d="M17 9h1.5a2.5 2.5 0 0 1 0 5H17" stroke="#f2e6d4" stroke-width="1.6"/><path d="M3 20h14" stroke="#f2e6d4" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="eyebrow">STU 1201 · Group 4</div>
+        <h1>Coffee Export Workflow</h1>
+      </div>
+    </div>
+    <div class="batch-tag">Processing Batch <b id="batchNumTag">1</b></div>
+  </header>
+
+  <div class="layout">
+    <div class="rail" id="rail"></div>
+
+    <div class="panel" id="panel"></div>
+  </div>
+
+  <div class="log-panel">
+    <div class="log-head">
+      <h3>results.txt — audit log</h3>
+      <button class="download-btn" onclick="downloadLog()">Download results.txt</button>
+    </div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+
+</div>
+
+<script>
+const STAGES = [
+  {key:'reception', label:'Reception', sub:'Supplier & weight'},
+  {key:'inspection', label:'Inspection', sub:'Ripeness / moisture / matter'},
+  {key:'power', label:'Power Check', sub:'KPLC or generator'},
+  {key:'processing', label:'Processing', sub:'Wet Mill or Dry Mill'},
+  {key:'quality', label:'Quality Check', sub:'Grade & defect count'},
+  {key:'packaging', label:'Packaging', sub:'Bag type & count'},
+  {key:'export', label:'Export Decision', sub:'3 certificates verified'},
+];
+
+let batchNum = 1;
+let stageIndex = 0;
+let stageStatus = STAGES.map(()=>'pending'); // pending | active | done | failed
+let batch = {};
+let fullLog = "";
+
+function resetBatch(){
+  stageIndex = 0;
+  stageStatus = STAGES.map(()=>'pending');
+  stageStatus[0] = 'active';
+  batch = { number: batchNum };
+  document.getElementById('batchNumTag').textContent = batchNum;
+  renderRail();
+  renderStage();
+}
+
+function renderRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = STAGES.map((s,i)=>{
+    const st = stageStatus[i];
+    const cls = st==='active' ? 'active' : st==='done' ? 'done' : st==='failed' ? 'failed' : '';
+    const glyph = st==='done' ? '✓' : st==='failed' ? '✕' : (i+1);
+    return `<div class="step ${cls}">
+      <div class="dot">${glyph}</div>
+      <div class="label">${s.label}</div>
+      <div class="sub">${s.sub}</div>
+    </div>`;
+  }).join('');
+}
+
+function setActive(i){
+  stageStatus = stageStatus.map((s,idx)=> idx<i ? (s==='failed'?'failed':'done') : idx===i ? 'active' : 'pending');
+}
+
+function panel(html){
+  document.getElementById('panel').innerHTML = html;
+}
+
+function renderStage(){
+  const s = STAGES[stageIndex];
+  if(s) setActive(stageIndex);
+  renderRail();
+
+  if(!s){ return; }
+
+  if(s.key==='reception') return renderReception();
+  if(s.key==='inspection') return renderInspection();
+  if(s.key==='power') return renderPower();
+  if(s.key==='processing') return renderProcessing();
+  if(s.key==='quality') return renderQuality();
+  if(s.key==='packaging') return renderPackaging();
+  if(s.key==='export') return renderExport();
+}
+
+function stageWrap(eyebrow, title, desc, body, footer){
+  panel(`
+    <div>
+      <div class="stage-eyebrow">${eyebrow}</div>
+      <h2 class="stage-title">${title}</h2>
+      <p class="stage-desc">${desc}</p>
+      ${body}
+    </div>
+    <div class="footer-row">${footer}</div>
+  `);
+}
+
+/* ---------- STAGE 1: RECEPTION ---------- */
+function renderReception(){
+  stageWrap('Stage 1 of 7','Raw Material Reception',
+    'Log the supplier and the weight received before the batch enters inspection.',
+    `
+    <div class="field">
+      <label>Supplier name</label>
+      <input type="text" id="supplier" placeholder="e.g. Kiambu Farmers Cooperative" value="${batch.supplier||''}">
+    </div>
+    <div class="field">
+      <label>Weight received (kg)</label>
+      <input type="number" id="weight" placeholder="e.g. 250" min="0" step="0.1" value="${batch.weight||''}">
+      <div class="inline-error" id="err-reception">Enter a supplier name and a weight greater than 0.</div>
+    </div>
+    `,
+    `<span></span><button class="btn btn-primary" onclick="submitReception()">Continue →</button>`
+  );
+}
+function submitReception(){
+  const supplier = document.getElementById('supplier').value.trim();
+  const weight = parseFloat(document.getElementById('weight').value);
+  if(!supplier || !(weight>0)){
+    document.getElementById('err-reception').style.display='block';
+    return;
+  }
+  batch.supplier = supplier;
+  batch.weight = weight;
+  stageIndex++;
+  renderStage();
+}
+
+/* ---------- STAGE 2: INSPECTION ---------- */
+function renderInspection(){
+  batch.ripeness = batch.ripeness ?? null;
+  batch.moisture = batch.moisture ?? null;
+  batch.foreign = batch.foreign ?? null;
+  stageWrap('Stage 2 of 7','Basic Inspection',
+    'All three checks must pass — a single "No" fails the batch and skips straight to the next one.',
+    `
+    ${yesNoField('ripeness','Is ripeness level acceptable?')}
+    ${yesNoField('moisture','Is moisture level acceptable?')}
+    ${yesNoField('foreign','No foreign matter detected?')}
+    <div class="inline-error" id="err-inspection">Answer all three checks before continuing.</div>
+    `,
+    `<span></span><button class="btn btn-primary" onclick="submitInspection()">Continue →</button>`
+  );
+}
+function yesNoField(field, label){
+  return `
+  <div class="field">
+    <label>${label}</label>
+    <div class="choice-row">
+      <div class="choice ${batch[field]===true?'selected':''}" onclick="setYesNo('${field}',true)">Yes</div>
+      <div class="choice reject ${batch[field]===false?'selected':''}" onclick="setYesNo('${field}',false)">No</div>
+    </div>
+  </div>`;
+}
+function setYesNo(field,val){ batch[field]=val; renderStage(); }
+function submitInspection(){
+  if(batch.ripeness===null || batch.moisture===null || batch.foreign===null){
+    document.getElementById('err-inspection').style.display='block';
+    return;
+  }
+  if(batch.ripeness && batch.moisture && batch.foreign){
+    stageIndex++;
+    renderStage();
+  } else {
+    stageStatus[1]='failed';
+    logBatch('REJECTED', 'Inspection Result: FAILED\nStatus: Batch Rejected');
+    showEndScreen('rust','BATCH REJECTED', 'Basic inspection failed', [
+      ['Supplier', batch.supplier],
+      ['Weight', batch.weight+' kg'],
+      ['Ripeness OK', batch.ripeness?'Yes':'No'],
+      ['Moisture OK', batch.moisture?'Yes':'No'],
+      ['No foreign matter', batch.foreign?'Yes':'No'],
+    ]);
+  }
+}
+
+/* ---------- STAGE 3: POWER ---------- */
+function renderPower(){
+  batch.kplc = batch.kplc ?? null;
+  stageWrap('Stage 3 of 7','Electricity Check',
+    'If KPLC power is unavailable, the system automatically records backup generator use.',
+    yesNoField('kplc','Is KPLC electricity available?'),
+    `<span></span><button class="btn btn-primary" onclick="submitPower()">Continue →</button>`
+  );
+}
+function submitPower(){
+  if(batch.kplc===null) return;
+  batch.powerSource = batch.kplc ? 'KPLC Electricity' : 'Backup Generator';
+  stageIndex++;
+  renderStage();
+}
+
+/* ---------- STAGE 4: PROCESSING ---------- */
+function renderProcessing(){
+  batch.method = batch.method ?? null;
+  stageWrap('Stage 4 of 7','Processing / Preparation',
+    'Choose the milling method — the correct sub-process chain is applied automatically.',
+    `
+    <div class="method-grid">
+      <div class="method-card ${batch.method==='wet'?'selected':''}" onclick="setMethod('wet')">
+        <b>Wet Mill</b>
+        <span>Pulping → Fermentation → Washing → Drying</span>
+      </div>
+      <div class="method-card ${batch.method==='dry'?'selected':''}" onclick="setMethod('dry')">
+        <b>Dry Mill</b>
+        <span>Drying → Hulling</span>
+      </div>
+    </div>
+    `,
+    `<span></span><button class="btn btn-primary" onclick="submitProcessing()">Continue →</button>`
+  );
+}
+function setMethod(m){ batch.method=m; renderStage(); }
+function submitProcessing(){
+  if(!batch.method) return;
+  stageIndex++;
+  renderStage();
+}
+
+/* ---------- STAGE 5: QUALITY ---------- */
+function renderQuality(){
+  const grades = [['1','AA'],['2','AB'],['3','C'],['4','PB'],['5','E']];
+  stageWrap('Stage 5 of 7','Quality Check',
+    'Grade must be AA–PB and defect count 11 or fewer per 300g to pass.',
+    `
+    <div class="field">
+      <label>Coffee grade</label>
+      <select id="grade">
+        <option value="">Select grade…</option>
+        ${grades.map(([v,l])=>`<option value="${v}" ${batch.grade==v?'selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label>Defect count per 300g sample</label>
+      <input type="number" id="defects" min="0" value="${batch.defects??''}">
+    </div>
+    <div class="inline-error" id="err-quality">Select a grade and enter a defect count.</div>
+    `,
+    `<span></span><button class="btn btn-primary" onclick="submitQuality()">Continue →</button>`
+  );
+}
+function submitQuality(){
+  const grade = parseInt(document.getElementById('grade').value);
+  const defects = parseInt(document.getElementById('defects').value);
+  if(!grade || isNaN(defects)){
+    document.getElementById('err-quality').style.display='block';
+    return;
+  }
+  batch.grade = grade;
+  batch.defects = defects;
+  const gradeNames = {1:'AA',2:'AB',3:'C',4:'PB',5:'E'};
+  batch.gradeName = gradeNames[grade];
+
+  if(grade>=1 && grade<=4 && defects<=11){
+    stageIndex++;
+    renderStage();
+  } else {
+    stageStatus[4]='failed';
+    logBatch('REPROCESSING', `Quality Check: FAILED\nStatus: Sent for Reprocessing\nGrade Entered: ${batch.gradeName}\nDefects: ${defects}`);
+    showEndScreen('amber','SENT FOR REPROCESSING', 'Quality check failed', [
+      ['Grade entered', batch.gradeName],
+      ['Defect count', defects],
+      ['Required', 'Grade AA–PB, ≤11 defects'],
+    ]);
+  }
+}
+
+/* ---------- STAGE 6: PACKAGING ---------- */
+function renderPackaging(){
+  batch.bagType = batch.bagType ?? null;
+  stageWrap('Stage 6 of 7','Packaging',
+    'Net weight is calculated automatically from the number of 60kg bags.',
+    `
+    <div class="field">
+      <label>Bag type</label>
+      <div class="choice-row">
+        <div class="choice ${batch.bagType==='liner'?'selected':''}" onclick="setBag('liner')">GrainPro Hermetic Liner</div>
+        <div class="choice ${batch.bagType==='jute'?'selected':''}" onclick="setBag('jute')">Standard Jute Bag</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Number of 60kg bags</label>
+      <input type="number" id="numBags" min="0" value="${batch.numBags??''}">
+    </div>
+    <div class="inline-error" id="err-packaging">Select a bag type and enter the number of bags.</div>
+    `,
+    `<span></span><button class="btn btn-primary" onclick="submitPackaging()">Continue →</button>`
+  );
+}
+function setBag(t){ batch.bagType=t; renderStage(); }
+function submitPackaging(){
+  const numBags = parseInt(document.getElementById('numBags').value);
+  if(!batch.bagType || isNaN(numBags)){
+    document.getElementById('err-packaging').style.display='block';
+    return;
+  }
+  batch.numBags = numBags;
+  batch.netWeight = numBags*60;
+  stageIndex++;
+  renderStage();
+}
+
+/* ---------- STAGE 7: EXPORT ---------- */
+function renderExport(){
+  batch.phyto = batch.phyto ?? null;
+  batch.coo = batch.coo ?? null;
+  batch.ico = batch.ico ?? null;
+  stageWrap('Stage 7 of 7','Export Decision',
+    'All three certificates must be valid for export approval.',
+    `
+    ${yesNoField('phyto','Phytosanitary certificate valid?')}
+    ${yesNoField('coo','Certificate of Origin valid?')}
+    ${yesNoField('ico','ICO certificate obtained?')}
+    <div class="inline-error" id="err-export">Answer all three certificate checks.</div>
+    `,
+    `<span></span><button class="btn btn-primary" onclick="submitExport()">Finalize Batch →</button>`
+  );
+}
+function submitExport(){
+  if(batch.phyto===null||batch.coo===null||batch.ico===null){
+    document.getElementById('err-export').style.display='block';
+    return;
+  }
+  stageIndex++;
+  setActive(6);
+  stageStatus[6]='done';
+  renderRail();
+
+  const approved = batch.phyto && batch.coo && batch.ico;
+  if(approved){
+    logBatch('EXPORT APPROVED',
+      `Export Status: APPROVED\nShipment Cleared for Export`);
+    showEndScreen('sage','EXPORT APPROVED', 'Batch cleared for shipment', [
+      ['Supplier', batch.supplier],
+      ['Grade', batch.gradeName],
+      ['Net weight', batch.netWeight+' kg'],
+      ['Bags', batch.numBags+' × '+(batch.bagType==='liner'?'GrainPro Liner':'Jute Bag')],
+    ]);
+  } else {
+    const missing = [];
+    if(!batch.phyto) missing.push('Missing Phytosanitary Certificate');
+    if(!batch.coo) missing.push('Missing Certificate of Origin');
+    if(!batch.ico) missing.push('Missing ICO Certificate');
+    logBatch('ON HOLD', `Export Status: ON HOLD\n${missing.map(m=>'- '+m).join('\n')}`);
+    showEndScreen('rust','EXPORT ON HOLD', 'One or more certificates missing', [
+      ['Supplier', batch.supplier],
+      ['Grade', batch.gradeName],
+      ['Net weight', batch.netWeight+' kg'],
+    ], missing);
+  }
+}
+
+/* ---------- END SCREEN ---------- */
+function showEndScreen(color, stampText, subtitle, rows, missing){
+  const summary = rows.map(([k,v])=>`
+    <div><div class="k">${k}</div><div class="v">${v}</div></div>
+  `).join('');
+  const missingHtml = missing && missing.length ? `<ul class="missing-list">${missing.map(m=>`<li>${m}</li>`).join('')}</ul>` : '';
+  panel(`
+    <div class="result-screen">
+      <div class="stage-eyebrow">Batch ${batch.number} complete</div>
+      <div class="stamp ${color}">${stampText}</div>
+      <p class="stage-desc">${subtitle}</p>
+      <div class="summary-grid">${summary}</div>
+      ${missingHtml}
+    </div>
+    <div class="footer-row">
+      <span></span>
+      <button class="btn btn-primary" onclick="startNextBatch()">Process Next Batch →</button>
+    </div>
+  `);
+}
+function startNextBatch(){
+  batchNum++;
+  resetBatch();
+}
+
+/* ---------- LOGGING ---------- */
+function logBatch(status, details){
+  const entry =
+`====================================================
+BATCH ${batch.number}
+====================================================
+Supplier Name: ${batch.supplier||'—'}
+Weight Received: ${batch.weight!==undefined?batch.weight.toFixed(2)+' kg':'—'}
+${details}
+`;
+  fullLog += entry + "\n";
+  document.getElementById('logBody').textContent = fullLog;
+  const lb = document.getElementById('logBody');
+  lb.scrollTop = lb.scrollHeight;
+}
+
+function downloadLog(){
+  const header =
+`====================================================
+COFFEE EXPORT WORKFLOW MANAGEMENT SYSTEM
+====================================================
+Group Members:
+1. NYABARO CHRIS KINARO - 25/10415
+2. BERNCY ONYANGO - 23/05477
+3. MATHEW KARIUKI - 25/06603
+4. BETHWEL CHERUIYOT - 25/08011
+5. IAN OCHIENG - 23/04282
+
+`;
+  const footer =
+`
+====================================================
+END OF SESSION
+====================================================`;
+  const blob = new Blob([header + fullLog + footer], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'results.txt';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+resetBatch();
+</script>
+</body>
+</html>
